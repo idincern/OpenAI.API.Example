@@ -1,7 +1,8 @@
-﻿using OpenAI.GPT3.Interfaces;
-using OpenAI.GPT3.ObjectModels;
-using OpenAI.GPT3.ObjectModels.RequestModels;
-using OpenAI.GPT3.ObjectModels.ResponseModels;
+﻿using OpenAI.Interfaces;
+using OpenAI.Managers;
+using OpenAI.ObjectModels;
+using OpenAI.ObjectModels.RequestModels;
+using OpenAI.ObjectModels.ResponseModels;
 
 namespace OpenAI.API.Example.Services
 {
@@ -18,14 +19,29 @@ namespace OpenAI.API.Example.Services
         {
             while (true)
             {
-                Console.Write("::");
-                CompletionCreateResponse result = await _openAIService.Completions.CreateCompletion(new CompletionCreateRequest()
+                var completionResult = _openAIService.Completions.CreateCompletionAsStream(new CompletionCreateRequest()
                 {
-                    Prompt = Console.ReadLine(),
-                    MaxTokens = 500
-                }, Models.TextDavinciV3);
+                    Prompt = "Bu programın çalışıp çalışmadığının testi için C# kodu yazar mısın?",
+                    MaxTokens = 50
+                }, Models.Davinci);
 
-                Console.WriteLine(result.Choices[0].Text);
+                await foreach (var completion in completionResult)
+                {
+                    if (completion.Successful)
+                    {
+                        Console.Write(completion.Choices.FirstOrDefault()?.Text);
+                    }
+                    else
+                    {
+                        if (completion.Error == null)
+                        {
+                            throw new Exception("Unknown Error");
+                        }
+
+                        Console.WriteLine($"{completion.Error.Code}: {completion.Error.Message}");
+                    }
+                }
+                Console.WriteLine("Complete");
             }
         }
     }
